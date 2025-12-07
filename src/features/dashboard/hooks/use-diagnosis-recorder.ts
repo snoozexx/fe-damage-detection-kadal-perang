@@ -5,28 +5,15 @@ import type { WebSocketPayload } from "../types/dashboard.types";
 import { api } from "@/api/api";
 import { toast } from "sonner";
 
-export const useDiagnosisRecorder = (
-  currentRawData: WebSocketPayload | null
-) => {
+export const useDiagnosisRecorder = (currentRawData: WebSocketPayload | null) => {
   const [isRecording, setIsRecording] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<WebSocketPayload | null>(null);
-
   const [hasRecorded, setHasRecorded] = useState(false);
 
   const { selectedVehicleId } = useVehicleStore();
   const dataBuffer = useRef<WebSocketPayload[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (currentRawData) {
-      const shouldAutoStart = !isRecording && !hasRecorded && true;
-
-      if (shouldAutoStart) {
-        startDiagnosis();
-      }
-    }
-  }, [currentRawData, isRecording, hasRecorded]);
 
   useEffect(() => {
     if (isRecording && currentRawData) {
@@ -35,57 +22,46 @@ export const useDiagnosisRecorder = (
   }, [isRecording, currentRawData]);
 
   const startDiagnosis = () => {
-    if (!selectedVehicleId) return;
+    if (!selectedVehicleId || isRecording) return;
 
     setIsRecording(true);
-    setHasRecorded(true);
-    setResult(null);
+    setHasRecorded(false);
     setProgress(0);
+    setResult(null);
     dataBuffer.current = [];
 
+    console.log("▶️ Diagnosa Manual Dimulai");
 
     let seconds = 0;
-    const progressInterval = setInterval(() => {
+
+    const interval = setInterval(() => {
       seconds++;
       setProgress((seconds / 15) * 100);
-      if (seconds >= 15) clearInterval(progressInterval);
+      if (seconds >= 15) clearInterval(interval);
     }, 1000);
 
-    timerRef.current = setTimeout(async () => {
+    timerRef.current = setTimeout(() => {
       stopAndSave();
-      clearInterval(progressInterval);
+      clearInterval(interval);
     }, 15000);
   };
 
   const stopAndSave = async () => {
     setIsRecording(false);
+    setHasRecorded(true);
 
     const peakData = calculatePeakValues(dataBuffer.current);
-    if (peakData) {
-      peakData.vehicle_id = selectedVehicleId;
-      setResult(peakData);
-      localStorage.setItem("LAST_DIAGNOSIS_RESULT", JSON.stringify(peakData));
+    if (!peakData) return;
 
-      try {
-        const toastId = toast.loading("Mengupload data diagnosa...");
-        await api.post("/telemetry/db", peakData);
-        toast.success("Diagnosa Berhasil Disimpan", {
-          id: toastId,
-          description: `Data kendaraan ${selectedVehicleId} telah tersimpan di database.`,
-          duration: 4000,
-        });
-      } catch (error) {
-        console.error(error);
-        toast.error("Gagal Upload ke Server", {
-          description:
-            "Data tersimpan di Local Storage, namun gagal dikirim ke server.",
-          duration: 5000,
-          action: {
-            label: "Coba Lagi",
-            onClick: () => stopAndSave(),
-          },
-        });
-      }
+    peakData.vehicle_id = selectedVehicleId!;
+    setResult(peakData);
+    localStorage.setItem("LAST_DIAGNOSIS_RESULT", JSON.stringify(peakData));
+
+    try {
+      await api.post("/telemetry/db", peakData);
+      toast.success("Diagnosa Berhasil Disimpan");
+    } catch {
+      toast.error("Gagal upload, data tersimpan lokal");
     }
   };
 
@@ -98,9 +74,9 @@ export const useDiagnosisRecorder = (
   return {
     isRecording,
     progress,
-    result,
-    hasRecorded,
     startDiagnosis,
+    hasRecorded,
     resetRecorder,
+    result,
   };
 };

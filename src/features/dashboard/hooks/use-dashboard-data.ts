@@ -29,31 +29,38 @@ const initialData: DashboardData = {
   faults: [],
 };
 
-export const useDashboardSocket = (vehicleId: string, isPaused: boolean = false) => {
-  const baseSocketUrl = `wss://be-damage-detection-kadal-perang-production.up.railway.app/ws/${vehicleId || 'ARMADA-001'}`;
-  const socketUrl = (isPaused || !vehicleId) ? null : baseSocketUrl;
+export const useDashboardSocket = (
+  vehicleId: string,
+  isPaused: boolean = false,
+  isActive: boolean
+) => {
+  const baseSocketUrl =
+    isActive && vehicleId
+      ? `wss://be-damage-detection-kadal-perang-production.up.railway.app/ws/${vehicleId}`
+      : null;
+  const socketUrl = isPaused || !vehicleId ? null : baseSocketUrl;
 
   const [data, setData] = useState<DashboardData>(initialData);
   const [rawData, setRawData] = useState<WebSocketPayload | null>(null);
 
   const calculateConfidence = (raw: WebSocketPayload): number => {
-    let score = 45; 
+    let score = 45;
     if (raw.temp > 90) {
-        score += (raw.temp - 90) * 2; 
+      score += (raw.temp - 90) * 2;
     }
-    score += (raw.rpm / 10000) * 15; 
+    score += (raw.rpm / 10000) * 15;
     score += (raw.tps_percent / 100) * 5;
     if (raw.batt_volt < 12 && raw.batt_volt > 0) {
-        score += (12 - raw.batt_volt) * 10;
+      score += (12 - raw.batt_volt) * 10;
     }
-    const noise = (Math.random() * 4) - 2; 
+    const noise = Math.random() * 4 - 2;
     score += noise;
 
     return Math.min(99, Math.max(10, score));
   };
 
   const { lastMessage, readyState } = useWebSocket(socketUrl, {
-    shouldReconnect: () => true,
+    shouldReconnect: () => false,
     reconnectInterval: 3000,
     onClose: () => console.log("🔌 WebSocket Disconnected"),
     onOpen: () => console.log("🟢 WebSocket Connected"),
@@ -66,10 +73,15 @@ export const useDashboardSocket = (vehicleId: string, isPaused: boolean = false)
         setRawData(raw);
 
         setData((prev) => {
-          const updateMetric = (prevMetric: Metric, newValue: number, customUnit?: string): Metric => {
+          const updateMetric = (
+            prevMetric: Metric,
+            newValue: number,
+            customUnit?: string
+          ): Metric => {
             const safeValue = typeof newValue === "number" ? newValue : 0;
-            const formattedValue = safeValue % 1 !== 0 ? safeValue.toFixed(1) : safeValue;
-            
+            const formattedValue =
+              safeValue % 1 !== 0 ? safeValue.toFixed(1) : safeValue;
+
             const newTrend = [...prevMetric.trend.slice(1), safeValue];
             const unit = customUnit || prevMetric.unit;
             return {
@@ -82,16 +94,25 @@ export const useDashboardSocket = (vehicleId: string, isPaused: boolean = false)
           let currentStatus: "normal" | "warning" | "critical" = "normal";
           const urgency = raw.ai_advice?.urgency || "Low";
 
-          const isBackendCritical = raw.status?.some(s => 
-              s.toUpperCase().includes("CRITICAL") || s.toUpperCase().includes("DANGER") || s.toUpperCase().includes("HIGH") 
+          const isBackendCritical = raw.status?.some(
+            (s) =>
+              s.toUpperCase().includes("CRITICAL") ||
+              s.toUpperCase().includes("DANGER") ||
+              s.toUpperCase().includes("HIGH")
           );
-          const isBackendWarning = raw.status?.some(s => 
-              s.toUpperCase().includes("WARNING") || s.toUpperCase().includes("CAUTION")
+          const isBackendWarning = raw.status?.some(
+            (s) =>
+              s.toUpperCase().includes("WARNING") ||
+              s.toUpperCase().includes("CAUTION")
           );
 
           if (isBackendCritical || urgency === "High" || raw.temp > 105) {
             currentStatus = "critical";
-          } else if (isBackendWarning || urgency === "Medium" || raw.temp > 95) {
+          } else if (
+            isBackendWarning ||
+            urgency === "Medium" ||
+            raw.temp > 95
+          ) {
             currentStatus = "warning";
           }
 
@@ -100,9 +121,11 @@ export const useDashboardSocket = (vehicleId: string, isPaused: boolean = false)
           const newFaults: Fault[] = raw.ai_advice
             ? [
                 {
-                  title: raw.ai_advice.summary.split(".")[0] || "Analisis Sistem Berjalan",
+                  title:
+                    raw.ai_advice.summary.split(".")[0] ||
+                    "Analisis Sistem Berjalan",
                   description: raw.ai_advice.summary,
-                  confidence: dynamicScore, 
+                  confidence: dynamicScore,
                   urgency: raw.ai_advice.urgency,
                   costRange: raw.ai_advice.estimated_cost_text,
                   sources: raw.ai_advice.sources,

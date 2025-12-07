@@ -71,7 +71,7 @@ export const DashboardPage = () => {
                             <h1 className="text-2xl font-bold">Vehicle Monitor</h1>
                             <p className="text-sm text-zinc-400">
                                 Monitoring: <span className="text-blue-400 font-semibold">
-                                    {currentVehicle?.name || selectedVehicleId || 'Menunggu data...'}
+                                    {currentVehicle?.name || selectedVehicleId || ''}
                                 </span>
                             </p>
                         </div>

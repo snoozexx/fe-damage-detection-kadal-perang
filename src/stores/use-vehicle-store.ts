@@ -1,5 +1,5 @@
-import { api } from '@/api/api';
-import { create } from 'zustand';
+import { api } from "@/api/api";
+import { create } from "zustand";
 
 export type Vehicle = {
   id: string;
@@ -11,14 +11,14 @@ interface VehicleState {
   selectedVehicleId: string;
   vehicles: Vehicle[];
   isLoading: boolean;
-  
+
   setSelectedVehicleId: (id: string) => void;
   getSelectedVehicle: () => Vehicle | undefined;
-  fetchVehicles: () => Promise<void>; 
+  fetchVehicles: () => Promise<void>;
 }
 
 export const useVehicleStore = create<VehicleState>((set, get) => ({
-  selectedVehicleId: '', 
+  selectedVehicleId: "",
   vehicles: [],
   isLoading: false,
 
@@ -32,28 +32,26 @@ export const useVehicleStore = create<VehicleState>((set, get) => ({
   fetchVehicles: async () => {
     set({ isLoading: true });
     try {
-      const response = await api.get<string[]>('/vehicles/db'); 
-      
+      const response = await api.get<string[]>("/vehicles/db");
+
       if (Array.isArray(response.data)) {
         const mappedVehicles: Vehicle[] = response.data.map((item) => ({
-           id: item,         
-           name: item,      
-           plate: 'Terdeteksi' 
+          id: item,
+          name: item,
+          plate: "Terdeteksi",
         }));
 
-        set({ 
+        set({
           vehicles: mappedVehicles,
-          selectedVehicleId: mappedVehicles.length > 0 ? mappedVehicles[0].id : '',
-          isLoading: false 
+          isLoading: false,
         });
       } else {
         console.error("Format data API bukan array:", response.data);
         set({ isLoading: false });
       }
-
     } catch (error) {
       console.error("Gagal koneksi ke API:", error);
       set({ isLoading: false });
     }
-  }
+  },
 }));

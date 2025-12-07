@@ -41,9 +41,16 @@ export const DashboardPage = () => {
         }
     }, [hasRecorded, isRecording]);
 
+    useEffect(() => {
+  if (hasRecorded && !isRecording) {
+    setIsScanning(false); // ✅ DISCONNECT
+  }
+}, [hasRecorded, isRecording]);
+
+
     const handleReset = () => {
         resetRecorder();
-        setShouldDisconnect(false);
+        setIsScanning(false); // pastikan WS mati
     };
 
     const currentVehicle = getSelectedVehicle();
@@ -93,8 +100,8 @@ export const DashboardPage = () => {
                                 ) : (
                                     <Button
                                         onClick={() => {
-                                            setIsScanning(true);  
-                                            startDiagnosis();    
+                                            setIsScanning(true);
+                                            startDiagnosis();
                                         }}
                                         disabled={isScanning}
                                         className="bg-blue-600 hover:bg-blue-700 gap-2"

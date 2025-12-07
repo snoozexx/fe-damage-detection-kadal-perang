@@ -56,7 +56,7 @@ export const DashboardPage = () => {
         />
       ) : (
         <>
-          <div className="flex flex-col space-y-4 items-center justify-between mb-4 animate-in fade-in slide-in-from-top-2">
+          <div className="flex flex-col md:flex-row space-y-4 items-center justify-between mb-4 animate-in fade-in slide-in-from-top-2">
             <div>
                 <h1 className="text-2xl font-bold">Vehicle Monitor</h1>
                 <p className="text-sm text-zinc-400">

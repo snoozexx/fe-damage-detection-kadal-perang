@@ -1,9 +1,11 @@
-import { Clock } from "lucide-react";
+import { ArrowLeft, Clock } from "lucide-react";
 import { HistoryTemplate } from "../components/templates/history-template";
 import { useHistoryLogic } from "@/features/dashboard/hooks/use-history-logic";
 import { HistoryCard } from "@/components/molecules/history-card/history-card";
 import { HistorySearchBar } from "@/components/molecules/history-card/history-search";
 import { HistoryDetailDialog } from "@/components/molecules/history-card/history-detail-modal";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "@tanstack/react-router";
 
 export const HistoryPage = () => {
   const { 
@@ -17,10 +19,21 @@ export const HistoryPage = () => {
     hasSelectedVehicle
   } = useHistoryLogic();
 
+  const router = useRouter();
   // Bagian Header
   const HeaderComponent = (
     <div>
+      <div className="flex items-center gap-3">
+        <Button
+        size={"icon"}
+        variant={"link"}
+        className="text-white hover:bg-primary"
+        onClick={() => router.history.back()}
+        >
+        <ArrowLeft className="w-5 h-5"/>
+        </Button>
         <h1 className="text-2xl font-bold">Riwayat Diagnosa</h1>
+      </div>
         <p className="text-zinc-400 text-sm">Arsip hasil scan AI kendaraan Anda</p>
     </div>
   );
